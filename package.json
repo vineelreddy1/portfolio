@@ -4,6 +4,7 @@
   "description": "Vineel Reddy - Engineer Portfolio",
   "main": "server.js",
   "scripts": {
+    "build": "echo 'Build complete - no compilation needed for static site'",
     "start": "node server.js"
   },
   "dependencies": {
