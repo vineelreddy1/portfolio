@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Vineel Reddy — Engineer</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* ============================================================
+   DESIGN: "DEEP SPACE ENGINEER"
+   Concept: You're not a student — you're from the future.
+   - Three.js animated 3D starfield + nebula particles
+   - Holographic HUD panels with scan-line shimmer
+   - Electric blue (#00d4ff) + ice white + deep space black
+   - Cinematic section transitions with clip-path reveals
+   - Floating 3D-perspective cards with depth
+   - Custom crosshair cursor
+   - Orbitron for that premium sci-fi display font
+============================================================ */
+:root{
+  --void:#00000d;
+  --deep:#020212;
+  --surface:#050520;
+  --card:#080830;
+  --holo:rgba(0,212,255,0.06);
+  --holo-border:rgba(0,212,255,0.18);
+  --blue:#00d4ff;
+  --blue2:#0099ff;
+  --ice:#e0f4ff;
+  --white:#f5faff;
+  --muted:rgba(224,244,255,0.45);
+  --dim:rgba(224,244,255,0.15);
+  --warn:#ff6b35;
+  --green:#00ffaa;
+  --font-display:'Orbitron',sans-serif;
+  --font-body:'Sora',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --glow:0 0 30px rgba(0,212,255,0.35);
+  --glow-lg:0 0 60px rgba(0,212,255,0.25),0 0 120px rgba(0,212,255,0.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--white);
+  font-family:var(--font-body);
+  overflow-x:hidden;
+  cursor:none;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============================================================ CURSOR */
+#cur-ring{
+  position:fixed;width:36px;height:36px;
+  border:1.5px solid var(--blue);
+  border-radius:50%;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform .15s,width .2s,height .2s,border-color .2s,background .2s;
+  mix-blend-mode:screen;
+}
+#cur-dot{
+  position:fixed;width:4px;height:4px;background:var(--blue);
+  border-radius:50%;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 8px var(--blue);
+}
+/* crosshair lines */
+#cur-ring::before,#cur-ring::after{
+  content:'';position:absolute;background:var(--blue);opacity:.5;
+}
+#cur-ring::before{width:1px;height:8px;left:50%;top:-14px;transform:translateX(-50%)}
+#cur-ring::after{width:8px;height:1px;top:50%;left:-14px;transform:translateY(-50%)}
+body.hov #cur-ring{width:54px;height:54px;background:rgba(0,212,255,0.08);border-color:var(--blue)}
+
+/* ============================================================ CANVAS */
+#bg-canvas{
+  position:fixed;inset:0;z-index:0;
+  pointer-events:none;
+}
+
+/* ============================================================ NOISE */
+body::after{
+  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ============================================================ NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  padding:20px 60px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(0,0,13,0.9),transparent);
+  backdrop-filter:blur(4px);
+}
+.nav-logo{
+  font-family:var(--font-display);font-size:.8rem;
+  letter-spacing:.25em;color:var(--blue);
+  text-shadow:var(--glow);
+}
+.nav-links{display:flex;gap:36px}
+.nav-link{
+  font-family:var(--font-mono);font-size:.65rem;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);transition:color .25s;cursor:none;
+  text-decoration:none;position:relative;
+}
+.nav-link::after{
+  content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;
+  background:var(--blue);transform:scaleX(0);transition:transform .3s;
+}
+.nav-link:hover{color:var(--blue)}
+.nav-link:hover::after{transform:scaleX(1)}
+.nav-cta{
+  font-family:var(--font-mono);font-size:.65rem;letter-spacing:.15em;
+  padding:10px 22px;border:1px solid var(--holo-border);
+  border-radius:4px;color:var(--blue);cursor:none;
+  background:var(--holo);transition:all .25s;
+  text-decoration:none;
+}
+.nav-cta:hover{background:rgba(0,212,255,.12);box-shadow:var(--glow);transform:translateY(-1px)}
+
+/* ============================================================ HERO */
+#hero{
+  position:relative;z-index:10;
+  min-height:100vh;
+  display:flex;align-items:center;
+  padding:0 60px;
+}
+.hero-inner{max-width:1200px;margin:0 auto;width:100%}
+.hero-eyebrow{
+  font-family:var(--font-mono);font-size:.7rem;
+  letter-spacing:.3em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:28px;
+  display:flex;align-items:center;gap:16px;
+  opacity:0;animation:riseIn .8s .3s forwards;
+}
+.hero-eyebrow::before{content:'';width:48px;height:1px;background:var(--blue);box-shadow:var(--glow)}
+.hero-name{
+  font-family:var(--font-display);
+  font-size:clamp(3.5rem,9vw,9rem);
+  font-weight:900;line-height:.92;
+  letter-spacing:-.01em;
+  margin-bottom:16px;
+  opacity:0;animation:riseIn .9s .5s forwards;
+}
+.hero-name .line1{
+  display:block;
+  background:linear-gradient(135deg,var(--white) 0%,var(--blue) 60%,var(--blue2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 40px rgba(0,212,255,.5));
+}
+.hero-name .line2{
+  display:block;color:transparent;
+  -webkit-text-stroke:1.5px rgba(0,212,255,.4);
+  font-size:85%;
+}
+.hero-role{
+  font-family:var(--font-mono);font-size:1rem;color:var(--muted);
+  margin-bottom:40px;
+  opacity:0;animation:riseIn .8s .75s forwards;
+}
+.hero-role .accent{color:var(--blue)}
+.hero-role .blink{animation:blink .9s step-end infinite}
+.hero-desc{
+  max-width:500px;font-size:1rem;line-height:1.85;
+  color:var(--muted);margin-bottom:48px;
+  opacity:0;animation:riseIn .8s .9s forwards;
+}
+.hero-actions{
+  display:flex;gap:16px;flex-wrap:wrap;
+  opacity:0;animation:riseIn .8s 1.05s forwards;
+}
+.btn-primary{
+  font-family:var(--font-mono);font-size:.75rem;letter-spacing:.12em;
+  padding:15px 36px;background:var(--blue);color:#000;border:none;
+  border-radius:4px;cursor:none;transition:all .3s;font-weight:600;
+  text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;gap:10px;
+  position:relative;overflow:hidden;
+}
+.btn-primary::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.2),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.btn-primary:hover::before{opacity:1}
+.btn-primary:hover{box-shadow:var(--glow-lg);transform:translateY(-3px)}
+.btn-ghost{
+  font-family:var(--font-mono);font-size:.75rem;letter-spacing:.12em;
+  padding:14px 36px;background:transparent;
+  border:1px solid var(--holo-border);color:var(--blue);
+  border-radius:4px;cursor:none;transition:all .3s;
+  text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;gap:10px;
+}
+.btn-ghost:hover{background:var(--holo);box-shadow:var(--glow);transform:translateY(-3px)}
+
+/* hero right - floating holo card */
+.hero-holo{
+  position:absolute;right:60px;top:50%;transform:translateY(-50%);
+  width:260px;
+  opacity:0;animation:riseIn 1s 1.3s forwards;
+}
+.holo-card{
+  background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:12px;padding:0;overflow:hidden;
+  box-shadow:var(--glow),inset 0 1px 0 rgba(0,212,255,.1);
+  position:relative;
+}
+.holo-card::before{
+  content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.08),transparent);
+  animation:holoScan 3s linear infinite;
+}
+@keyframes holoScan{0%{left:-60%}100%{left:160%}}
+.holo-card-top{
+  padding:16px 20px;border-bottom:1px solid var(--holo-border);
+  font-family:var(--font-mono);font-size:.6rem;color:var(--blue);
+  letter-spacing:.2em;display:flex;justify-content:space-between;align-items:center;
+}
+.holo-pulse{
+  width:6px;height:6px;background:var(--green);border-radius:50%;
+  box-shadow:0 0 8px var(--green);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+/* photo slot inside holo card */
+.holo-photo{
+  width:100%;aspect-ratio:1;overflow:hidden;position:relative;
+  background:radial-gradient(circle at center,rgba(0,212,255,.1) 0%,transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+}
+.holo-photo img{
+  width:100%;height:100%;object-fit:cover;object-position:center top;
+  filter:contrast(1.05) saturate(1.1);
+  mix-blend-mode:luminosity;opacity:.85;
+}
+.holo-photo-fallback{
+  font-family:var(--font-display);font-size:4rem;font-weight:900;
+  color:rgba(0,212,255,.15);letter-spacing:.05em;
+  position:absolute;
+}
+.holo-photo-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,var(--holo-border) 0%,transparent 40%);
+}
+.holo-photo-corner{position:absolute;width:20px;height:20px;border-color:var(--blue);border-style:solid;opacity:.6}
+.holo-photo-corner.tl{top:8px;left:8px;border-width:2px 0 0 2px}
+.holo-photo-corner.tr{top:8px;right:8px;border-width:2px 2px 0 0}
+.holo-photo-corner.bl{bottom:8px;left:8px;border-width:0 0 2px 2px}
+.holo-photo-corner.br{bottom:8px;right:8px;border-width:0 2px 2px 0}
+.holo-rows{padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.holo-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:.65rem}
+.holo-label{color:var(--muted)}
+.holo-val{color:var(--blue);font-weight:600}
+.holo-bar-wrap{margin-top:4px}
+.holo-bar{height:2px;background:rgba(0,212,255,.1);border-radius:2px;overflow:hidden}
+.holo-fill{height:100%;background:linear-gradient(90deg,var(--blue2),var(--blue));border-radius:2px;animation:barFill 2s 1.5s ease forwards;width:0}
+@keyframes barFill{to{width:var(--w,70%)}}
+
+/* hero bottom scroll hint */
+.scroll-cue{
+  position:absolute;bottom:40px;left:60px;
+  display:flex;align-items:center;gap:16px;
+  font-family:var(--font-mono);font-size:.6rem;letter-spacing:.25em;
+  color:var(--dim);text-transform:uppercase;
+  opacity:0;animation:riseIn .8s 1.8s forwards;
+}
+.scroll-line{width:48px;height:1px;background:var(--dim);position:relative;overflow:hidden}
+.scroll-line::after{
+  content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;
+  background:var(--blue);animation:scrollLine 2s 2s ease-in-out infinite;
+}
+@keyframes scrollLine{0%{left:-50%}100%{left:150%}}
+
+/* ============================================================ SECTIONS */
+section{position:relative;z-index:10;padding:120px 60px}
+.section-inner{max-width:1200px;margin:0 auto;width:100%}
+.section-label{
+  font-family:var(--font-mono);font-size:.62rem;
+  letter-spacing:.3em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:20px;
+  display:flex;align-items:center;gap:14px;opacity:.8;
+}
+.section-label::before{content:'';width:32px;height:1px;background:var(--blue)}
+.section-title{
+  font-family:var(--font-display);
+  font-size:clamp(2.4rem,5vw,4.2rem);
+  font-weight:700;line-height:1;
+  letter-spacing:.02em;margin-bottom:60px;
+}
+.section-title .dim{-webkit-text-stroke:1px rgba(0,212,255,.2);color:transparent}
+
+/* ============================================================ ABOUT */
+#about{background:linear-gradient(to bottom,var(--void),var(--deep))}
+.about-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:80px;align-items:center}
+.about-text p{font-size:1rem;line-height:1.9;color:var(--muted);margin-bottom:20px}
+.about-text p strong{color:var(--white)}
+.about-text p .hl{color:var(--blue)}
+.about-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
+.astat{
+  padding:24px;background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:8px;transition:all .3s;cursor:none;position:relative;overflow:hidden;
+}
+.astat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue2),var(--blue));transform:scaleX(0);transition:transform .4s;transform-origin:left}
+.astat:hover::before{transform:scaleX(1)}
+.astat:hover{transform:translateY(-4px);border-color:rgba(0,212,255,.35)}
+.astat-num{font-family:var(--font-display);font-size:2.6rem;font-weight:700;color:var(--blue);line-height:1;text-shadow:var(--glow)}
+.astat-suf{font-size:1.2rem}
+.astat-lbl{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+/* holo terminal */
+.holo-terminal{
+  background:rgba(5,5,32,.8);border:1px solid var(--holo-border);
+  border-radius:12px;overflow:hidden;position:relative;
+  box-shadow:var(--glow);
+}
+.ht-bar{
+  padding:12px 20px;background:rgba(0,212,255,.05);
+  border-bottom:1px solid var(--holo-border);
+  font-family:var(--font-mono);font-size:.65rem;color:var(--muted);
+  display:flex;align-items:center;gap:10px;
+}
+.ht-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 6px var(--blue)}
+.ht-body{padding:24px;font-family:var(--font-mono);font-size:.78rem;line-height:2}
+.hl-g{color:var(--green)}.hl-b{color:var(--blue)}.hl-o{color:var(--warn)}.hl-m{color:var(--muted)}
+
+/* ============================================================ SKILLS */
+#skills{background:var(--deep)}
+.skills-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.skill-panel{
+  background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:10px;padding:28px;
+  transition:all .3s;cursor:none;position:relative;overflow:hidden;
+}
+.skill-panel::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(0,212,255,.08),transparent 60%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.skill-panel:hover::after{opacity:1}
+.skill-panel:hover{transform:translateY(-6px);border-color:rgba(0,212,255,.4);box-shadow:var(--glow)}
+.sp-icon{font-size:1.4rem;margin-bottom:14px}
+.sp-cat{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
+.sp-pills{display:flex;flex-wrap:wrap;gap:8px}
+.sp-pill{
+  font-family:var(--font-mono);font-size:.7rem;
+  padding:5px 13px;border-radius:3px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.12);
+  color:var(--muted);transition:all .2s;
+}
+.sp-pill:hover{color:var(--blue);border-color:var(--blue);background:rgba(0,212,255,.1)}
+
+/* ============================================================ PROJECTS */
+#projects{background:linear-gradient(to bottom,var(--deep),var(--surface))}
+.projects-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+.projects-col{display:flex;flex-direction:column;gap:24px}
+.proj{
+  background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:12px;overflow:hidden;transition:all .35s;cursor:none;
+  position:relative;
+}
+.proj:hover{transform:translateY(-6px);box-shadow:var(--glow-lg);border-color:rgba(0,212,255,.45)}
+.proj-accent{height:3px;background:linear-gradient(90deg,var(--blue2),var(--blue),rgba(0,212,255,0))}
+.proj.alt .proj-accent{background:linear-gradient(90deg,#00ffaa,rgba(0,255,170,0))}
+.proj.alt2 .proj-accent{background:linear-gradient(90deg,var(--warn),rgba(255,107,53,0))}
+.proj-inner{padding:28px}
+.proj-meta{font-family:var(--font-mono);font-size:.6rem;color:var(--muted);letter-spacing:.1em;margin-bottom:14px;display:flex;justify-content:space-between}
+.proj-status{color:var(--green)}
+.proj-status.inactive{color:var(--muted)}
+.proj-title{font-family:var(--font-display);font-size:1.5rem;font-weight:700;letter-spacing:.03em;margin-bottom:12px;line-height:1.1}
+.proj.featured .proj-title{font-size:2rem}
+.proj-desc{font-size:.88rem;color:var(--muted);line-height:1.75;margin-bottom:20px}
+.proj-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.proj-tag{font-family:var(--font-mono);font-size:.65rem;padding:4px 11px;border-radius:3px;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.1);color:var(--muted)}
+.proj-link{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;
+  color:var(--blue);border:1px solid rgba(0,212,255,.25);
+  padding:9px 18px;border-radius:5px;transition:all .25s;text-decoration:none;
+}
+.proj-link:hover{background:rgba(0,212,255,.08);box-shadow:var(--glow);transform:translateX(4px)}
+.proj.alt .proj-link{color:var(--green);border-color:rgba(0,255,170,.25)}
+.proj.alt .proj-link:hover{background:rgba(0,255,170,.06);box-shadow:0 0 20px rgba(0,255,170,.2)}
+.proj.alt2 .proj-link{color:var(--warn);border-color:rgba(255,107,53,.25)}
+
+/* ============================================================ JOURNEY */
+#journey{background:var(--surface)}
+.journey-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px}
+.tl{position:relative;padding-left:32px}
+.tl::before{
+  content:'';position:absolute;left:7px;top:8px;bottom:0;width:1px;
+  background:linear-gradient(to bottom,var(--blue),rgba(0,212,255,.1));
+}
+.tl-item{
+  position:relative;margin-bottom:36px;
+  opacity:0;transform:translateX(-20px);transition:all .5s;
+}
+.tl-item.visible{opacity:1;transform:none}
+.tl-dot{
+  position:absolute;left:-32px;top:14px;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--void);border:2px solid var(--blue);
+  box-shadow:0 0 12px var(--blue);
+}
+.tl-card{
+  background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:10px;padding:20px 22px;transition:all .3s;cursor:none;
+}
+.tl-card:hover{border-color:rgba(0,212,255,.4);transform:translateX(6px);box-shadow:var(--glow)}
+.tl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:7px}
+.tl-org{font-weight:600;font-size:.95rem}
+.tl-date{font-family:var(--font-mono);font-size:.6rem;color:var(--muted);background:rgba(0,212,255,.06);padding:3px 10px;border-radius:3px;white-space:nowrap}
+.tl-role{font-family:var(--font-mono);font-size:.68rem;color:var(--blue);margin-bottom:7px}
+.tl-desc{font-size:.82rem;color:var(--muted);line-height:1.65}
+.certs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start;margin-top:64px}
+.cert{
+  background:var(--holo);border:1px solid var(--holo-border);border-radius:10px;
+  padding:22px;transition:all .3s;cursor:none;border-bottom:2px solid var(--blue);
+}
+.cert:hover{transform:translateY(-5px);box-shadow:var(--glow)}
+.cert-icon{font-size:1.5rem;margin-bottom:12px}
+.cert-name{font-size:.88rem;font-weight:600;margin-bottom:4px}
+.cert-org{font-family:var(--font-mono);font-size:.62rem;color:var(--muted)}
+.cert-yr{font-family:var(--font-mono);font-size:.62rem;color:var(--blue);margin-top:4px}
+
+/* ============================================================ BOOK A CALL */
+#book{background:linear-gradient(to bottom,var(--surface),var(--deep))}
+.book-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:64px;align-items:start}
+.book-intro p{font-size:.95rem;color:var(--muted);line-height:1.8;margin-bottom:16px}
+.avail-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;margin-top:24px}
+.avail-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.avail-chip{
+  font-family:var(--font-mono);font-size:.67rem;
+  padding:6px 14px;border-radius:4px;
+  background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);color:var(--blue);
+}
+.avail-chip.time{background:rgba(0,255,170,.05);border-color:rgba(0,255,170,.15);color:var(--green)}
+/* calendar */
+.cal{background:var(--holo);border:1px solid var(--holo-border);border-radius:12px;overflow:hidden;margin-top:28px;box-shadow:var(--glow)}
+.cal-head{
+  background:rgba(0,212,255,.05);border-bottom:1px solid var(--holo-border);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.cal-nav{width:28px;height:28px;border:1px solid var(--holo-border);border-radius:4px;background:transparent;color:var(--muted);cursor:none;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:.85rem}
+.cal-nav:hover{border-color:var(--blue);color:var(--blue);box-shadow:var(--glow)}
+.cal-month-lbl{font-family:var(--font-mono);font-size:.75rem;color:var(--white)}
+.cal-body{padding:16px}
+.cal-dn{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px}
+.cal-dname{font-family:var(--font-mono);font-size:.58rem;color:var(--muted);text-align:center;padding:4px 0}
+.cal-days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cd{
+  aspect-ratio:1;border-radius:5px;border:1px solid transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:.68rem;color:var(--muted);
+  cursor:none;transition:all .18s;
+}
+.cd.empty{visibility:hidden}.cd.past{opacity:.2;pointer-events:none}
+.cd.unavail{opacity:.25}.cd.today{color:var(--white);border-color:rgba(255,255,255,.15)}
+.cd.avail{color:var(--blue);cursor:none}
+.cd.avail:hover{background:rgba(0,212,255,.1);border-color:var(--blue);box-shadow:0 0 10px rgba(0,212,255,.2)}
+.cd.picked{background:var(--blue);color:#000;border-color:var(--blue);font-weight:700;box-shadow:var(--glow)}
+.ts-wrap{padding:14px 16px;border-top:1px solid var(--holo-border);display:none}
+.ts-wrap.show{display:block}
+.ts-head{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.ts-row{display:flex;flex-wrap:wrap;gap:8px}
+.ts{
+  font-family:var(--font-mono);font-size:.68rem;
+  padding:7px 14px;border-radius:4px;
+  background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.1);
+  color:var(--muted);cursor:none;transition:all .2s;
+}
+.ts:hover{border-color:var(--blue);color:var(--blue)}
+.ts.picked{background:var(--green);border-color:var(--green);color:#000;font-weight:700}
+/* booking panel */
+.book-panel{background:rgba(5,5,32,.9);border:1px solid var(--holo-border);border-radius:14px;padding:36px;box-shadow:var(--glow)}
+.bp-title{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.bp-title::before{content:'//';opacity:.4}
+.bp-selection{
+  background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);
+  border-radius:6px;padding:12px 16px;
+  font-family:var(--font-mono);font-size:.72rem;color:var(--blue);
+  margin-bottom:24px;min-height:44px;display:flex;align-items:center;gap:8px;
+}
+.bp-selection.empty{color:var(--muted)}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.fl{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.fi,.fta{
+  background:rgba(0,212,255,.03);border:1px solid rgba(0,212,255,.1);
+  border-radius:6px;padding:11px 15px;color:var(--white);
+  font-family:var(--font-body);font-size:.88rem;outline:none;
+  transition:border-color .25s,box-shadow .25s;cursor:none;
+}
+.fi:focus,.fta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,212,255,.08)}
+.fta{min-height:80px;resize:vertical}
+.book-btn,.cf-send{
+  width:100%;padding:14px;border:none;border-radius:6px;
+  font-family:var(--font-mono);font-size:.75rem;letter-spacing:.12em;
+  text-transform:uppercase;cursor:none;font-weight:600;
+  transition:all .3s;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.book-btn{background:var(--blue);color:#000}
+.book-btn:hover{box-shadow:var(--glow-lg);transform:translateY(-2px)}
+.book-btn:disabled{opacity:.4;transform:none}
+.cf-send{background:var(--green);color:#000;margin-top:4px}
+.cf-send:hover{box-shadow:0 0 40px rgba(0,255,170,.3);transform:translateY(-2px)}
+.cf-send:disabled{opacity:.4;transform:none}
+.form-status{margin-top:12px;font-family:var(--font-mono);font-size:.7rem;text-align:center;min-height:18px}
+
+/* ============================================================ CONTACT */
+#contact{background:linear-gradient(to bottom,var(--deep),var(--void))}
+.contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}
+.ct-tagline{
+  font-family:var(--font-display);
+  font-size:clamp(2.5rem,5.5vw,4.8rem);
+  font-weight:700;line-height:.95;letter-spacing:.02em;
+  margin-bottom:28px;
+}
+.ct-tagline .l1{
+  display:block;
+  background:linear-gradient(135deg,var(--white),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.ct-tagline .l2{display:block;color:transparent;-webkit-text-stroke:1px rgba(0,212,255,.3)}
+.ct-tagline .l3{display:block;color:var(--blue);text-shadow:var(--glow)}
+.ct-bio{font-size:.95rem;color:var(--muted);line-height:1.8;margin-bottom:36px}
+.ct-links{display:flex;flex-direction:column;gap:10px}
+.ct-link{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 18px;background:var(--holo);border:1px solid var(--holo-border);
+  border-radius:8px;transition:all .25s;cursor:none;text-decoration:none;
+}
+.ct-link:hover{border-color:rgba(0,212,255,.4);transform:translateX(8px);box-shadow:var(--glow)}
+.ct-icon{
+  width:36px;height:36px;border-radius:6px;
+  background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue);
+}
+.ct-icon svg{width:15px;height:15px}
+.ct-lbl{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.ct-val{font-size:.88rem;font-weight:500;color:var(--white)}
+/* contact form */
+.cf{background:var(--holo);border:1px solid var(--holo-border);border-radius:14px;padding:36px;box-shadow:var(--glow)}
+.cf-head{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:24px}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cf-grp{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.cf-lbl{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cf-inp,.cf-ta{
+  background:rgba(0,212,255,.03);border:1px solid rgba(0,212,255,.1);
+  border-radius:6px;padding:11px 14px;color:var(--white);
+  font-family:var(--font-body);font-size:.88rem;outline:none;cursor:none;
+  transition:border-color .25s,box-shadow .25s;
+}
+.cf-inp:focus,.cf-ta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,212,255,.08)}
+.cf-ta{min-height:110px;resize:vertical}
+
+/* ============================================================ FOOTER */
+footer{
+  position:relative;z-index:10;
+  text-align:center;padding:40px 60px;
+  border-top:1px solid rgba(0,212,255,.08);
+  font-family:var(--font-mono);font-size:.62rem;color:var(--dim);
+  letter-spacing:.15em;
+}
+footer span{color:var(--blue)}
+
+/* ============================================================ REVEAL ANIMATIONS */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}
+.reveal.visible{opacity:1;transform:none}
+.reveal-l{opacity:0;transform:translateX(-30px);transition:opacity .7s,transform .7s}
+.reveal-l.visible{opacity:1;transform:none}
+.reveal-r{opacity:0;transform:translateX(30px);transition:opacity .7s,transform .7s}
+.reveal-r.visible{opacity:1;transform:none}
+
+@keyframes riseIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ============================================================ RESPONSIVE */
+@media(max-width:960px){
+  nav{padding:16px 24px}
+  .nav-links,.nav-cta{display:none}
+  section{padding:80px 24px}
+  #hero{padding:0 24px}
+  .hero-holo{display:none}
+  .about-grid,.skills-grid,.projects-grid,.journey-grid,.book-grid,.contact-grid{grid-template-columns:1fr}
+  .cf-row{grid-template-columns:1fr}
+  body{cursor:auto}
+  #cur-ring,#cur-dot{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cur-ring"></div>
+<div id="cur-dot"></div>
+
+<!-- THREE.JS CANVAS -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">VR // ENGINEER</div>
+  <div class="nav-links">
+    <a href="#about" class="nav-link">About</a>
+    <a href="#skills" class="nav-link">Stack</a>
+    <a href="#projects" class="nav-link">Work</a>
+    <a href="#journey" class="nav-link">Journey</a>
+    <a href="#book" class="nav-link">Call</a>
+    <a href="#contact" class="nav-link">Contact</a>
+  </div>
+  <a href="resume.pdf" download class="nav-cta">↓ Resume</a>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section id="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">System online — Portfolio v4.0</div>
+    <h1 class="hero-name">
+      <span class="line1">VINEEL</span>
+      <span class="line2">REDDY</span>
+    </h1>
+    <div class="hero-role">
+      &gt;&gt; <span class="accent" id="typed-hero"></span><span class="blink">_</span>
+    </div>
+    <p class="hero-desc">
+      CS Engineer at LPU crafting AI systems, full-stack applications, and secure software — 
+      somewhere between the terminal and the stars.
+    </p>
+    <div class="hero-actions">
+      <a href="#projects" class="btn-primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        View My Work
+      </a>
+      <a href="#book" class="btn-ghost">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Book a Call
+      </a>
+    </div>
+  </div>
+
+  <!-- holographic card -->
+  <div class="hero-holo">
+    <div class="holo-card">
+      <div class="holo-card-top">
+        <span>ID // VNL-2024</span>
+        <div class="holo-pulse"></div>
+      </div>
+      <div class="holo-photo">
+        <img src="photo.jpg" alt="Vineel Reddy"
+          onerror="this.style.display='none';document.getElementById('holo-fb').style.display='flex'"/>
+        <div class="holo-photo-fallback" id="holo-fb" style="display:flex">VR</div>
+        <div class="holo-photo-overlay"></div>
+        <div class="holo-photo-corner tl"></div>
+        <div class="holo-photo-corner tr"></div>
+        <div class="holo-photo-corner bl"></div>
+        <div class="holo-photo-corner br"></div>
+      </div>
+      <div class="holo-rows">
+        <div class="holo-row"><span class="holo-label">CGPA</span><span class="holo-val">7.20</span></div>
+        <div class="holo-row"><span class="holo-label">DSA</span><span class="holo-val">100+</span></div>
+        <div class="holo-row"><span class="holo-label">Projects</span><span class="holo-val">3+</span></div>
+        <div class="holo-bar-wrap">
+          <div style="font-family:var(--font-mono);font-size:.55rem;color:var(--muted);margin-bottom:5px">SKILL INDEX</div>
+          <div class="holo-bar"><div class="holo-fill" style="--w:78%"></div></div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(0,255,170,.05);border:1px solid rgba(0,255,170,.12);border-radius:5px;font-family:var(--font-mono);font-size:.62rem;color:var(--green);text-align:center">
+          ⚡ OPEN TO OPPORTUNITIES
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <div class="scroll-line"></div>
+    Scroll to explore
+  </div>
+</section>
+
+<!-- ═══════════ ABOUT ═══════════ -->
+<section id="about">
+  <div class="section-inner">
+    <div class="section-label">01 // About</div>
+    <div class="about-grid">
+      <div class="about-text reveal-l">
+        <h2 class="section-title">Who I <span class="dim">Am.</span></h2>
+        <p>I'm <strong>Vathaluru Vineel Reddy</strong>, a B.Tech CSE student at <span class="hl">Lovely Professional University</span>, Punjab. I build things that live at the intersection of AI, web engineering, and security.</p>
+        <p>From training <span class="hl">generative diffusion models</span> to shipping full-stack cinema apps — I prefer shipping over talking. 100+ DSA problems solved on LeetCode, and still going.</p>
+        <p>I'm not just learning to code. I'm learning to think like a machine and feel like a human — and build things that bridge both.</p>
+        <div class="about-stats">
+          <div class="astat reveal" style="transition-delay:.1s" data-t="100">
+            <div class="astat-num"><span class="sn">0</span><span class="astat-suf">+</span></div>
+            <div class="astat-lbl">DSA Problems</div>
+          </div>
+          <div class="astat reveal" style="transition-delay:.2s" data-t="3">
+            <div class="astat-num"><span class="sn">0</span><span class="astat-suf">+</span></div>
+            <div class="astat-lbl">Projects Shipped</div>
+          </div>
+          <div class="astat reveal" style="transition-delay:.3s" data-t="95">
+            <div class="astat-num"><span class="sn">0</span><span class="astat-suf">%</span></div>
+            <div class="astat-lbl">Intermediate Score</div>
+          </div>
+          <div class="astat reveal" style="transition-delay:.4s" data-t="7">
+            <div class="astat-num"><span class="sn">0</span><span class="astat-suf">.2</span></div>
+            <div class="astat-lbl">Current CGPA</div>
+          </div>
+        </div>
+      </div>
+      <div class="holo-terminal reveal-r">
+        <div class="ht-bar">
+          <div class="ht-dot"></div>
+          <span>vineel@lpu:~ — zsh</span>
+        </div>
+        <div class="ht-body">
+          <div><span class="hl-g">vineel@lpu</span><span class="hl-m">:</span><span class="hl-b">~</span><span class="hl-m">$ </span>whoami</div>
+          <div class="hl-b">→ Vathaluru Vineel Reddy</div>
+          <div>&nbsp;</div>
+          <div><span class="hl-g">vineel@lpu</span><span class="hl-m">:</span><span class="hl-b">~</span><span class="hl-m">$ </span>cat interests.cfg</div>
+          <div class="hl-o">⬡ AI / ML Engineering</div>
+          <div class="hl-o">⬡ Full-Stack Web Dev</div>
+          <div class="hl-o">⬡ Cybersecurity</div>
+          <div class="hl-o">⬡ Competitive Programming</div>
+          <div>&nbsp;</div>
+          <div><span class="hl-g">vineel@lpu</span><span class="hl-m">:</span><span class="hl-b">~</span><span class="hl-m">$ </span>status --availability</div>
+          <div style="color:var(--green)">✓ Open to internships</div>
+          <div style="color:var(--green)">✓ Available for freelance</div>
+          <div style="color:var(--green)">✓ Ready to collaborate</div>
+          <div>&nbsp;</div>
+          <div class="hl-m">█<span style="animation:blink .9s step-end infinite;display:inline-block"> </span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SKILLS ═══════════ -->
+<section id="skills">
+  <div class="section-inner">
+    <div class="section-label">02 // Tech Stack</div>
+    <h2 class="section-title">My <span class="dim">Arsenal.</span></h2>
+    <div class="skills-grid">
+      <div class="skill-panel reveal" style="transition-delay:.05s">
+        <div class="sp-icon">⚡</div>
+        <div class="sp-cat">Languages</div>
+        <div class="sp-pills">
+          <span class="sp-pill">C</span><span class="sp-pill">C++</span>
+          <span class="sp-pill">Python</span><span class="sp-pill">Java</span>
+        </div>
+      </div>
+      <div class="skill-panel reveal" style="transition-delay:.1s">
+        <div class="sp-icon">🌐</div>
+        <div class="sp-cat">Frontend / Web</div>
+        <div class="sp-pills">
+          <span class="sp-pill">JavaScript</span><span class="sp-pill">React</span>
+          <span class="sp-pill">Vite</span><span class="sp-pill">HTML5</span><span class="sp-pill">CSS3</span>
+        </div>
+      </div>
+      <div class="skill-panel reveal" style="transition-delay:.15s">
+        <div class="sp-icon">🤖</div>
+        <div class="sp-cat">AI / ML</div>
+        <div class="sp-pills">
+          <span class="sp-pill">Stable Diffusion</span>
+          <span class="sp-pill">Scikit-learn</span>
+          <span class="sp-pill">Gradio</span>
+          <span class="sp-pill">SVM</span><span class="sp-pill">TF-IDF</span>
+        </div>
+      </div>
+      <div class="skill-panel reveal" style="transition-delay:.2s">
+        <div class="sp-icon">⚙️</div>
+        <div class="sp-cat">Backend & Tools</div>
+        <div class="sp-pills">
+          <span class="sp-pill">Express.js</span><span class="sp-pill">MySQL</span>
+          <span class="sp-pill">REST APIs</span><span class="sp-pill">Git</span>
+        </div>
+      </div>
+      <div class="skill-panel reveal" style="transition-delay:.25s">
+        <div class="sp-icon">🔐</div>
+        <div class="sp-cat">Security</div>
+        <div class="sp-pills">
+          <span class="sp-pill">Brute Force Sim</span>
+          <span class="sp-pill">IDS / IPS</span>
+          <span class="sp-pill">Log Analysis</span>
+          <span class="sp-pill">System Hardening</span>
+        </div>
+      </div>
+      <div class="skill-panel reveal" style="transition-delay:.3s">
+        <div class="sp-icon">🧠</div>
+        <div class="sp-cat">CS Fundamentals</div>
+        <div class="sp-pills">
+          <span class="sp-pill">DSA</span><span class="sp-pill">Algorithms</span>
+          <span class="sp-pill">OOP</span><span class="sp-pill">OS</span><span class="sp-pill">DBMS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PROJECTS ═══════════ -->
+<section id="projects">
+  <div class="section-inner">
+    <div class="section-label">03 // Work</div>
+    <h2 class="section-title">Projects <span class="dim">Built.</span></h2>
+    <div class="projects-grid">
+      <div class="proj featured reveal-l">
+        <div class="proj-accent"></div>
+        <div class="proj-inner">
+          <div class="proj-meta">
+            <span>PROJECT_01 · Feb 2026 → Present</span>
+            <span class="proj-status">● ACTIVE</span>
+          </div>
+          <div class="proj-title">REEL Cinema App</div>
+          <div class="proj-desc">Full-stack movie discovery platform with mood-based recommendations, streaming availability lookup, vibe scoring algorithm, and a "Surprise Me" mode. Built with real-time TMDB data and a custom Express backend.</div>
+          <div class="proj-tags">
+            <span class="proj-tag">React</span><span class="proj-tag">Vite</span>
+            <span class="proj-tag">Express.js</span><span class="proj-tag">TMDB API</span><span class="proj-tag">REST</span>
+          </div>
+          <a href="https://github.com/vineelreddy1/reel-cinema-app" target="_blank" rel="noopener" class="proj-link">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            View on GitHub →
+          </a>
+        </div>
+      </div>
+      <div class="projects-col">
+        <div class="proj alt reveal-r" style="transition-delay:.1s">
+          <div class="proj-accent"></div>
+          <div class="proj-inner">
+            <div class="proj-meta"><span>PROJECT_02 · Sep–Oct 2025</span><span class="proj-status inactive">● SHIPPED</span></div>
+            <div class="proj-title">Stable Diffusion Generator</div>
+            <div class="proj-desc">Generative AI pipeline for automated image synthesis with full prompt-engineering workflow and GPU acceleration via Gradio.</div>
+            <div class="proj-tags">
+              <span class="proj-tag">Python</span><span class="proj-tag">Stable Diffusion</span><span class="proj-tag">Gradio</span>
+            </div>
+            <a href="https://github.com/vineelreddy1/stable-diffusion-generator" target="_blank" rel="noopener" class="proj-link">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              GitHub →
+            </a>
+          </div>
+        </div>
+        <div class="proj alt2 reveal-r" style="transition-delay:.2s">
+          <div class="proj-accent"></div>
+          <div class="proj-inner">
+            <div class="proj-meta"><span>PROJECT_03 · Jul–Aug 2025</span><span class="proj-status inactive">● SHIPPED</span></div>
+            <div class="proj-title">Email Spam Detector</div>
+            <div class="proj-desc">SVM + TF-IDF NLP classifier with pattern recognition for sneaky-word detection, urgency sentiment filtering, and linguistic analysis.</div>
+            <div class="proj-tags">
+              <span class="proj-tag">Python</span><span class="proj-tag">Scikit-learn</span><span class="proj-tag">SVM</span><span class="proj-tag">NLP</span>
+            </div>
+            <a href="https://github.com/vineelreddy1/email-spam-detector" target="_blank" rel="noopener" class="proj-link">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              GitHub →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ JOURNEY ═══════════ -->
+<section id="journey">
+  <div class="section-inner">
+    <div class="section-label">04 // Journey</div>
+    <h2 class="section-title">The <span class="dim">Path.</span></h2>
+    <div class="journey-grid">
+      <div class="tl">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-card">
+            <div class="tl-top"><div class="tl-org">🎓 Lovely Professional University</div><div class="tl-date">Aug 2023 → Now</div></div>
+            <div class="tl-role">B.Tech — Computer Science & Engineering</div>
+            <div class="tl-desc">Punjab, India · CGPA 7.20 · Focusing on AI/ML, DSA, Cybersecurity & Full-Stack</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-card">
+            <div class="tl-top"><div class="tl-org">🔐 Cybersecurity Essentials — LPU</div><div class="tl-date">Jun 2024</div></div>
+            <div class="tl-role">Training Certification</div>
+            <div class="tl-desc">Built Brute Force Simulator · IDS/IPS implementation · Log analysis & system hardening</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-card">
+            <div class="tl-top"><div class="tl-org">⚡ LeetCode Competitive DSA</div><div class="tl-date">Ongoing</div></div>
+            <div class="tl-role">100+ Problems Solved</div>
+            <div class="tl-desc">Arrays · Trees · Graphs · Dynamic Programming · Daily discipline</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-card">
+            <div class="tl-top"><div class="tl-org">📚 Sri Chaitanya College, Tirupati</div><div class="tl-date">2021 → 2023</div></div>
+            <div class="tl-role">Intermediate — MPC</div>
+            <div class="tl-desc">Scored <strong style="color:var(--blue)">95%</strong> — strong foundation in Mathematics & Sciences</div>
+          </div>
+        </div>
+      </div>
+      <div class="certs-grid">
+        <div class="cert reveal" style="transition-delay:.05s">
+          <div class="cert-icon">🔐</div>
+          <div class="cert-name">Cybersecurity Essentials</div>
+          <div class="cert-org">LPU</div>
+          <div class="cert-yr">Jun 2024</div>
+        </div>
+        <div class="cert reveal" style="transition-delay:.1s">
+          <div class="cert-icon">🧩</div>
+          <div class="cert-name">100+ DSA Solved</div>
+          <div class="cert-org">LeetCode</div>
+          <div class="cert-yr">2024</div>
+        </div>
+        <div class="cert reveal" style="transition-delay:.15s" style="border-bottom-color:var(--green)">
+          <div class="cert-icon">🤖</div>
+          <div class="cert-name">Generative AI Engineering</div>
+          <div class="cert-org">Self-Directed</div>
+          <div class="cert-yr">2025</div>
+        </div>
+        <div class="cert reveal" style="transition-delay:.2s">
+          <div class="cert-icon">📧</div>
+          <div class="cert-name">NLP Classification</div>
+          <div class="cert-org">Self-Directed</div>
+          <div class="cert-yr">2025</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ BOOK A CALL ═══════════ -->
+<section id="book">
+  <div class="section-inner">
+    <div class="section-label">05 // Schedule</div>
+    <h2 class="section-title">Book a <span class="dim">Call.</span></h2>
+    <div class="book-grid">
+      <div class="book-intro reveal-l">
+        <p>Pick a day and slot — I'll get the details straight to my inbox. No Calendly, no middleman. Just us.</p>
+        <p><strong>Duration:</strong> 30 min · Google Meet or Phone</p>
+        <div class="avail-label">Available Days</div>
+        <div class="avail-row">
+          <span class="avail-chip">MON</span><span class="avail-chip">TUE</span>
+          <span class="avail-chip">WED</span><span class="avail-chip">THU</span><span class="avail-chip">FRI</span>
+        </div>
+        <div class="avail-label">Time Slots (IST)</div>
+        <div class="avail-row">
+          <span class="avail-chip time">10:00 AM</span>
+          <span class="avail-chip time">12:00 PM</span>
+          <span class="avail-chip time">3:00 PM</span>
+          <span class="avail-chip time">5:00 PM</span>
+          <span class="avail-chip time">7:00 PM</span>
+        </div>
+        <!-- calendar -->
+        <div class="cal">
+          <div class="cal-head">
+            <button class="cal-nav" id="calPrev">‹</button>
+            <div class="cal-month-lbl" id="calMonthLbl"></div>
+            <button class="cal-nav" id="calNext">›</button>
+          </div>
+          <div class="cal-body">
+            <div class="cal-dn">
+              <div class="cal-dname">S</div><div class="cal-dname">M</div>
+              <div class="cal-dname">T</div><div class="cal-dname">W</div>
+              <div class="cal-dname">T</div><div class="cal-dname">F</div>
+              <div class="cal-dname">S</div>
+            </div>
+            <div class="cal-days-grid" id="calGrid"></div>
+          </div>
+          <div class="ts-wrap" id="tsWrap">
+            <div class="ts-head">Select time slot</div>
+            <div class="ts-row">
+              <button class="ts" data-t="10:00 AM">10:00 AM</button>
+              <button class="ts" data-t="12:00 PM">12:00 PM</button>
+              <button class="ts" data-t="3:00 PM">3:00 PM</button>
+              <button class="ts" data-t="5:00 PM">5:00 PM</button>
+              <button class="ts" data-t="7:00 PM">7:00 PM</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- booking form -->
+      <div class="book-panel reveal-r">
+        <div class="bp-title">Booking Details</div>
+        <div class="bp-selection empty" id="bpSel">← Pick a date &amp; time from the calendar</div>
+        <div class="fg"><label class="fl">Your Name</label><input class="fi" id="bName" placeholder="Jane Smith" type="text"/></div>
+        <div class="fg"><label class="fl">Your Email</label><input class="fi" id="bEmail" placeholder="jane@email.com" type="email"/></div>
+        <div class="fg"><label class="fl">What to discuss?</label><textarea class="fta" id="bTopic" placeholder="Internship / Project collab / Just want to connect..."></textarea></div>
+        <button class="book-btn" id="bookBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="bookLbl">Confirm Booking</span>
+        </button>
+        <div class="form-status" id="bookStatus"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONTACT ═══════════ -->
+<section id="contact">
+  <div class="section-inner">
+    <div class="section-label">06 // Contact</div>
+    <div class="contact-grid">
+      <div class="reveal-l">
+        <div class="ct-tagline">
+          <span class="l1">LET'S</span>
+          <span class="l2">BUILD</span>
+          <span class="l3">TOGETHER.</span>
+        </div>
+        <div class="ct-bio">Open to internships, freelance, and epic collabs. I reply fast — always within 24 hours.</div>
+        <div class="ct-links">
+          <a href="mailto:vineelreddy769@gmail.com" class="ct-link">
+            <div class="ct-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div><div class="ct-lbl">Email</div><div class="ct-val">vineelreddy769@gmail.com</div></div>
+          </a>
+          <a href="https://linkedin.com/in/vineelreddy21" target="_blank" rel="noopener" class="ct-link">
+            <div class="ct-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></div>
+            <div><div class="ct-lbl">LinkedIn</div><div class="ct-val">linkedin.com/in/vineelreddy21</div></div>
+          </a>
+          <a href="https://github.com/vineelreddy1" target="_blank" rel="noopener" class="ct-link">
+            <div class="ct-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg></div>
+            <div><div class="ct-lbl">GitHub</div><div class="ct-val">github.com/vineelreddy1</div></div>
+          </a>
+          <a href="tel:+916304283178" class="ct-link">
+            <div class="ct-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg></div>
+            <div><div class="ct-lbl">Phone</div><div class="ct-val">+91 6304283178</div></div>
+          </a>
+        </div>
+      </div>
+      <div class="cf reveal-r">
+        <div class="cf-head">&gt;&gt; Send a Message</div>
+        <div class="cf-row">
+          <div class="cf-grp"><label class="cf-lbl">Name</label><input class="cf-inp" id="cfName" placeholder="Your name" type="text"/></div>
+          <div class="cf-grp"><label class="cf-lbl">Email</label><input class="cf-inp" id="cfEmail" placeholder="your@email.com" type="email"/></div>
+        </div>
+        <div class="cf-grp"><label class="cf-lbl">Subject</label><input class="cf-inp" id="cfSubject" placeholder="What's this about?"/></div>
+        <div class="cf-grp"><label class="cf-lbl">Message</label><textarea class="cf-ta" id="cfMsg" placeholder="Tell me about your opportunity or project..."></textarea></div>
+        <button class="cf-send" id="cfSend">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span id="cfLbl">Send Message</span>
+        </button>
+        <div class="form-status" id="cfStatus"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>VINEEL REDDY</span> · Built with precision · LPU Punjab · 2026
+</footer>
+
+<script>
+/* ════════════════════════════════════════════
+   EmailJS — paste your keys here
+   Get free account at emailjs.com (200/mo free)
+   Need 2 templates: contact + booking
+════════════════════════════════════════════ */
+const EJ_PUB   = 'YOUR_PUBLIC_KEY';
+const EJ_SVC   = 'YOUR_SERVICE_ID';
+const EJ_CONT  = 'YOUR_CONTACT_TEMPLATE_ID';   // vars: from_name, from_email, subject, message, to_name
+const EJ_BOOK  = 'YOUR_BOOKING_TEMPLATE_ID';   // vars: booker_name, booker_email, selected_date, selected_time, topic, to_name
+emailjs.init({publicKey:EJ_PUB});
+
+/* ════════════════════════════════════════════
+   THREE.JS STARFIELD + NEBULA
+════════════════════════════════════════════ */
+(function(){
+  const canvas=document.getElementById('bg-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,2000);
+  camera.position.z=600;
+
+  /* Stars */
+  const starGeo=new THREE.BufferGeometry();
+  const N=3500;
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]=(Math.random()-.5)*2400;
+    pos[i*3+1]=(Math.random()-.5)*2400;
+    pos[i*3+2]=(Math.random()-.5)*2400;
+    const t=Math.random();
+    if(t<.6){col[i*3]=0.5;col[i*3+1]=0.8;col[i*3+2]=1}        // blue
+    else if(t<.85){col[i*3]=0.9;col[i*3+1]=0.95;col[i*3+2]=1} // white
+    else{col[i*3]=0;col[i*3+1]=0.85;col[i*3+2]=1}             // cyan
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  starGeo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const starMat=new THREE.PointsMaterial({size:1.8,vertexColors:true,transparent:true,opacity:.85,sizeAttenuation:true});
+  scene.add(new THREE.Points(starGeo,starMat));
+
+  /* Nebula cloud — large translucent spheres */
+  const nebulaColors=[0x0044ff,0x0099ff,0x00d4ff,0x001144];
+  nebulaColors.forEach((c,i)=>{
+    const geo=new THREE.SphereGeometry(120+i*60,8,8);
+    const mat=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.018+i*.005,wireframe:false});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set((i%2===0?1:-1)*200,((i>1)?1:-1)*150,-300+i*80);
+    scene.add(mesh);
+  });
+
+  /* Mouse parallax */
+  let mx=0,my=0;
+  document.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=(e.clientY/innerHeight-.5)*2});
+
+  /* Resize */
+  window.addEventListener('resize',()=>{
+    renderer.setSize(innerWidth,innerHeight);
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  let t=0;
+  (function animate(){
+    requestAnimationFrame(animate);
+    t+=.0003;
+    camera.position.x+=(mx*18-camera.position.x)*.025;
+    camera.position.y+=(-my*18-camera.position.y)*.025;
+    camera.rotation.z=t*.08;
+    starMat.opacity=.7+Math.sin(t*3)*.1;
+    renderer.render(scene,camera);
+  })();
+})();
+
+/* ════════════════════════════════════════════
+   CURSOR
+════════════════════════════════════════════ */
+const ring=document.getElementById('cur-ring'),dot=document.getElementById('cur-dot');
+let cx=0,cy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;dot.style.left=cx+'px';dot.style.top=cy+'px'});
+(function loop(){rx+=(cx-rx)*.1;ry+=(cy-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(loop)})();
+document.querySelectorAll('a,button,.astat,.skill-panel,.proj,.tl-card,.cert,.ct-link,.cd.avail,.ts').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ════════════════════════════════════════════
+   TYPEWRITER
+════════════════════════════════════════════ */
+const roles=['AI / ML Engineer','Full-Stack Developer','Cybersecurity Enthusiast','Problem Solver','Builder'];
+let ri=0,ci=0,del=false;
+const tel=document.getElementById('typed-hero');
+function type(){
+  const w=roles[ri];
+  if(!del){tel.textContent=w.slice(0,++ci);if(ci===w.length){del=true;setTimeout(type,2000);return}}
+  else{tel.textContent=w.slice(0,--ci);if(ci===0){del=false;ri=(ri+1)%roles.length}}
+  setTimeout(type,del?45:85);
+}
+setTimeout(type,1000);
+
+/* ════════════════════════════════════════════
+   SCROLL REVEAL
+════════════════════════════════════════════ */
+const ro=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      // counter
+      if(e.target.dataset.t)animCount(e.target);
+      // timeline
+      if(e.target.classList.contains('tl-item'))e.target.classList.add('visible');
+    }
+  });
+},{threshold:.15});
+document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.tl-item').forEach(el=>ro.observe(el));
+
+/* ════════════════════════════════════════════
+   COUNTERS
+════════════════════════════════════════════ */
+function animCount(card){
+  if(card.dataset.counted)return;
+  card.dataset.counted=1;
+  const t=parseInt(card.dataset.t),el=card.querySelector('.sn');
+  let s=null;
+  (function step(ts){
+    if(!s)s=ts;
+    const p=Math.min((ts-s)/1400,1),e=1-Math.pow(1-p,3);
+    el.textContent=Math.floor(e*t);
+    p<1?requestAnimationFrame(step):el.textContent=t;
+  })(performance.now());
+}
+
+/* ════════════════════════════════════════════
+   CALENDAR
+════════════════════════════════════════════ */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const AVAIL_DOW=[1,2,3,4,5];
+let calY=2026,calM=2,selDate=null,selTime=null;
+
+function buildCal(){
+  document.getElementById('calMonthLbl').textContent=MONTHS[calM]+' '+calY;
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML='';
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const first=new Date(calY,calM,1).getDay();
+  const days=new Date(calY,calM+1,0).getDate();
+  for(let i=0;i<first;i++){const d=document.createElement('div');d.className='cd empty';grid.appendChild(d)}
+  for(let d=1;d<=days;d++){
+    const date=new Date(calY,calM,d);
+    const dow=date.getDay();
+    const isPast=date<today;
+    const isToday=date.getTime()===today.getTime();
+    const isAvail=AVAIL_DOW.includes(dow)&&!isPast;
+    const el=document.createElement('div');
+    let cls='cd';
+    if(isPast)cls+=' past';
+    else if(isToday)cls+=' today';
+    if(isAvail)cls+=' avail'; else if(!isPast)cls+=' unavail';
+    if(selDate&&selDate.getDate()===d&&selDate.getMonth()===calM)cls+=' picked';
+    el.className=cls;el.textContent=d;
+    if(isAvail)el.addEventListener('click',()=>pickDate(date,el));
+    grid.appendChild(el);
+  }
+}
+
+function pickDate(date,el){
+  selDate=date;selTime=null;
+  document.querySelectorAll('.cd').forEach(d=>d.classList.remove('picked'));
+  el.classList.add('picked');
+  document.querySelectorAll('.ts').forEach(b=>b.classList.remove('picked'));
+  document.getElementById('tsWrap').classList.add('show');
+  updateSel();
+}
+document.querySelectorAll('.ts').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.ts').forEach(x=>x.classList.remove('picked'));
+    b.classList.add('picked');selTime=b.dataset.t;updateSel();
+  });
+});
+function updateSel(){
+  const el=document.getElementById('bpSel');
+  if(selDate&&selTime){
+    el.className='bp-selection';
+    el.innerHTML=`📅 ${selDate.toDateString()} &nbsp;·&nbsp; ⏰ ${selTime} IST`;
+  } else if(selDate){
+    el.className='bp-selection';
+    el.innerHTML=`📅 ${selDate.toDateString()} — pick a time`;
+  } else {
+    el.className='bp-selection empty';
+    el.innerHTML='← Pick a date &amp; time from the calendar';
+  }
+}
+document.getElementById('calPrev').addEventListener('click',()=>{calM--;if(calM<0){calM=11;calY--}buildCal()});
+document.getElementById('calNext').addEventListener('click',()=>{calM++;if(calM>11){calM=0;calY++}buildCal()});
+buildCal();
+
+/* ════════════════════════════════════════════
+   BOOK A CALL — EmailJS
+════════════════════════════════════════════ */
+document.getElementById('bookBtn').addEventListener('click',()=>{
+  const name=document.getElementById('bName').value.trim();
+  const email=document.getElementById('bEmail').value.trim();
+  const topic=document.getElementById('bTopic').value.trim();
+  const st=document.getElementById('bookStatus');
+  if(!selDate||!selTime){st.style.color='#ff6b35';st.textContent='⚠ Select a date and time slot first.';return}
+  if(!name||!email){st.style.color='#ff6b35';st.textContent='⚠ Name and email required.';return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){st.style.color='#ff6b35';st.textContent='⚠ Enter a valid email.';return}
+  const btn=document.getElementById('bookBtn'),lbl=document.getElementById('bookLbl');
+  btn.disabled=true;lbl.textContent='Sending...';st.textContent='';
+  emailjs.send(EJ_SVC,EJ_BOOK,{
+    booker_name:name,booker_email:email,
+    selected_date:selDate.toDateString(),
+    selected_time:selTime+' IST',
+    topic:topic||'Not specified',to_name:'Vineel'
+  }).then(()=>{
+    lbl.textContent='Booking Confirmed ✓';
+    btn.style.background='var(--green)';
+    st.style.color='var(--green)';
+    st.textContent='✓ Booking sent! Vineel will email you within 24 hours.';
+    ['bName','bEmail','bTopic'].forEach(id=>document.getElementById(id).value='');
+    setTimeout(()=>{lbl.textContent='Confirm Booking';btn.style.background='';btn.disabled=false},4000);
+  }).catch(err=>{
+    console.error(err);
+    btn.disabled=false;lbl.textContent='Confirm Booking';btn.style.background='';
+    st.style.color='#ff6b35';st.textContent='Failed — email directly: vineelreddy769@gmail.com';
+  });
+});
+
+/* ════════════════════════════════════════════
+   CONTACT FORM — EmailJS
+════════════════════════════════════════════ */
+document.getElementById('cfSend').addEventListener('click',()=>{
+  const name=document.getElementById('cfName').value.trim();
+  const email=document.getElementById('cfEmail').value.trim();
+  const subject=document.getElementById('cfSubject').value.trim();
+  const msg=document.getElementById('cfMsg').value.trim();
+  const st=document.getElementById('cfStatus');
+  if(!name||!email||!msg){st.style.color='#ff6b35';st.textContent='⚠ Name, email and message required.';return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){st.style.color='#ff6b35';st.textContent='⚠ Enter a valid email.';return}
+  const btn=document.getElementById('cfSend'),lbl=document.getElementById('cfLbl');
+  btn.disabled=true;lbl.textContent='Sending...';st.textContent='';
+  emailjs.send(EJ_SVC,EJ_CONT,{
+    from_name:name,from_email:email,
+    subject:subject||'Portfolio Contact',
+    message:msg,to_name:'Vineel'
+  }).then(()=>{
+    lbl.textContent='Message Sent ✓';btn.style.background='#00d4ff';
+    st.style.color='var(--green)';st.textContent='✓ Got it! I\'ll reply within 24 hours.';
+    ['cfName','cfEmail','cfSubject','cfMsg'].forEach(id=>document.getElementById(id).value='');
+    setTimeout(()=>{lbl.textContent='Send Message';btn.style.background='';btn.disabled=false},4000);
+  }).catch(err=>{
+    console.error(err);
+    btn.disabled=false;lbl.textContent='Send Message';btn.style.background='';
+    st.style.color='#ff6b35';st.textContent='Failed — email: vineelreddy769@gmail.com';
+  });
+});
+
+/* ════════════════════════════════════════════
+   SKILL PANELS — mouse glow effect
+════════════════════════════════════════════ */
+document.querySelectorAll('.skill-panel').forEach(p=>{
+  p.addEventListener('mousemove',e=>{
+    const r=p.getBoundingClientRect();
+    p.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    p.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+});
+</script>
+</body>
+</html>
